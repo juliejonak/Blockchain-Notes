@@ -87,7 +87,7 @@ It contains an index, transactions (the data), timestamp, and hash of the previo
 ![Another How Blockchain Works](./blockchain_cycle_2.png "Another How Blockchain Works")  
 <br>
 
-When the first block is created, it contains data. The second block contains data and a hash of block one, hashed. Block three contains a hash of block two. And so on...   
+When the first block is created, it contains data. The second block contains data and a hash of block one. Block three contains a hash of block two. And so on...   
 
 If we try to change something in Block Two, the hash will be different from the stored Hash on Block Three, that references Block Two. In order to change one Block, you'd have to change all of the subsequent Blocks as well, because each modification would invalidate the stored Hash.  
 
