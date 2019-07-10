@@ -108,14 +108,14 @@ The Bitcoin Blockchain is public. Everyone has a copy of it and there's a networ
 
 <br>
 
-To cheat the system in a brute force method, you'd have to not only change one block, but all the following blocks _before_ and new block is added to the chain. Due to the substantial computing power and electricity required for mining a single block, it's nearly impossible to attack so many at once.  
+To cheat the system in a brute force method, you'd have to not only change one block, but all the following blocks _before_ any new block is added to the chain. Due to the substantial computing power and electricity required for mining a single block, it's nearly impossible to attack so many at once.  
 
 <br>
 <br>
 
 ## How does mining work?
 
-(This explanation from Investopedia)[https://www.investopedia.com/terms/b/bitcoin-mining.asp] is helpful:
+[This explanation from Investopedia](https://www.investopedia.com/terms/b/bitcoin-mining.asp) is helpful:
 
 <br>
 
