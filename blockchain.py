@@ -81,8 +81,12 @@ class Blockchain(object):
         zeroes, where p is the previous p'
         - p is the previous proof, and p' is the new proof
         """
-
-        pass
+        proof = 0
+        while self.valid_proof(last_proof, proof) is False:
+            # while we have NOT found a solution, we'll try again
+            proof += 1
+        # This loops exits when we have found a valid proof
+        return proof
 
     @staticmethod
     def valid_proof(last_proof, proof):
@@ -90,8 +94,10 @@ class Blockchain(object):
         Validates the Proof:  Does hash(last_proof, proof) contain 4
         leading zeroes?
         """
-        # TODO
-        pass
+        guess = f"{last_proof}{proof}".encode()
+        guess_hash = hashlib.sha256(guess).hexdigest()
+
+        return guess_hash[:4] == "0000"
 
     def valid_chain(self, chain):
         """
@@ -139,13 +145,14 @@ def mine():
     proof = blockchain.proof_of_work(last_proof)
 
     # We must receive a reward for finding the proof.
-    # TODO:
+    # The sender is 0, the recipient is node_identifier, and the amount is 1
+    blockchain.new_transaction(0, node_identifier, 1)
     # The sender is "0" to signify that this node has mine a new coin
     # The recipient is the current node, it did the mining!
     # The amount is 1 coin as a reward for mining the next block
 
     # Forge the new Block by adding it to the chain
-    # TODO
+    block = blockchain.new_block(proof, blockchain.hash(last_block))
 
     # Send a response with the new block
     response = {
@@ -179,7 +186,8 @@ def new_transaction():
 @app.route('/chain', methods=['GET'])
 def full_chain():
     response = {
-        # TODO: Return the chain and its current length
+        "currentChain": Blockchain.chain,
+        "length": len(Blockchain.chain)
     }
     return jsonify(response), 200
 
