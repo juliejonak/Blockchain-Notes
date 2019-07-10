@@ -35,6 +35,8 @@ i. [Project Tips](#Project-Tips)
 
 # Lecture I
 
+[Lecture I Recording with Brian Doyle](https://youtu.be/tBAYSVJNLWI)  
+
 ![Centralization and Ledgers](./ledgers_centralization.jpg "Centralization and Ledgers")
 
 
