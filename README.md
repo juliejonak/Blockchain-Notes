@@ -147,7 +147,7 @@ To open this file, we need to install our dependencies using `pipenv install` an
 
 <br>
 
-We're running (Flask)[https://en.wikipedia.org/wiki/Flask_(web_framework)], a simple web framework that calls a function when we hit a server endpoint. 
+We're running [Flask](https://en.wikipedia.org/wiki/Flask_(web_framework)), a simple web framework that calls a function when we hit a server endpoint. 
 
 Since we're using a server, to check that it's live and working, we can use Postman to hit `http://localhost:5000/mine` with a GET request.
 
@@ -203,7 +203,7 @@ block = {
 
 <br>
 
-New transation sets a new transaction to go into the next mined Block:
+`new_transation` sets a new transaction to the queue to be added to the next mined Block:
 
 <br>
 
@@ -246,7 +246,7 @@ The next item is a decorator:
 
 <br>
 
-It wraps the function underneath `@property` with a decorator name so you can access it as a property of the class.
+It wraps the function underneath `@property` with a decorator name so you can access it as a property of the class, like `blockchain.last_block()`.
 
 <br>
 
@@ -326,14 +326,14 @@ How can we verify is a blockchain is valid?
 
 We can check the hash of the previous block, or we can check the proof of work.  
 
-It's easier to check that a solution of a proof of work is correct, than checking the hash of previous bloks -- despite it being expensive to _create_ the solution to the proof of work.  
+It's easier to check that a solution of a proof of work is correct, than checking the hash of previous bloks -- despite it being expensive to _create_ the solution to the proof of work, it's "cheap" to check that a solution is correct. 
 
 <br>
 <br>
 
 ## Show the Chain
 
-Since we already have the Genesis Block, the first thing we should fill in what is currently in the chain so we can see the blockchain.
+Since we already have the Genesis Block, the first thing we should fill in is a way to show what is currently in the chain, so we can see the blockchain and easily check later work.
 
 We need to compose a response in Python to visualize the chain: 
 
@@ -407,7 +407,7 @@ Next let's work on the proof of work.
 <br>
 <br>
 
-We'll start at 0. Proofs are integers, which we know because the Genesis Block has an integer and the parameter specs indicate so.
+We'll start at 0. In this blockchain, proofs are integers, which we know because the Genesis Block has an integer and the parameter specs indicate so. We'll set it up to increment through numbers until a proof that is successful is found.
 
 <br>
 
@@ -422,7 +422,7 @@ return proof
 
 <br>
 
-This is easily written but requires us to write a good validation proof function:
+That part is easily written but then requires us to write a good validation proof function:
 
 <br>
 
@@ -459,7 +459,9 @@ guess_hash = hashlib.sha256(guess).hexdigest()
 ```
 <br>
 
-_A good research question would be to learn more about how this works and we arrived at this solution._
+_A good research question would be to learn more about how this works and how we arrived at this solution. What does encode() and hexdigest() do?_
+
+<br>
 
 How can we verify that the hash is functioning as expected?
 
@@ -473,7 +475,7 @@ return guess_hash[:4] == "0000"
 
 <br>
 
-This returns a true/false boolean value depending on if it passes our proof of work.  
+This returns a true/false boolean value depending on if it passes our proof of work (the first four digits are 0000).  
 
 We can test this by commenting out the `response` object data and replacing it with proof:
 
@@ -485,15 +487,6 @@ def mine():
     last_block = blockchain.last_block
     last_proof = last_block['proof']
     proof = blockchain.proof_of_work(last_proof)
-
-    # We must receive a reward for finding the proof.
-    # TODO:
-    # The sender is "0" to signify that this node has mine a new coin
-    # The recipient is the current node, it did the mining!
-    # The amount is 1 coin as a reward for mining the next block
-
-    # Forge the new Block by adding it to the chain
-    # TODO
 
     # Send a response with the new block
     response = {
@@ -509,14 +502,16 @@ def mine():
 
 <br>
 
-When we hit the /mine endpoint, it should return a successful number that passes our proof of work function.
+When we hit the `/mine` endpoint, it should return a successful number that passes our proof of work function, like `74581`.
 
 <br>
 <br>
 
 ## Reward
 
-We need to fill in the mine function to receive reward for our proof of work. We can use the new transaction function already written to help:
+We need to fill in the `mine` function to receive a reward for our proof of work. We can use the new transaction function already written to help:
+
+<br>
 
 ```
 # We must receive a reward for finding the proof.
@@ -526,7 +521,9 @@ blockchain.new_transaction(0, node_identifier, 1)
 
 <br>
 
-We also have a function for creating a new block, with the proof having been defined in line 145: `proof = blockchain.proof_of_work(last_proof)`. We'll use the hashed last_block of the blockchain as the previous_hash parameter:
+We also have a function for creating a new block, with the proof having been defined in line 145: `proof = blockchain.proof_of_work(last_proof)`. 
+
+We'll use the `hash(last_block)` of the blockchain as the `previous_hash` parameter in the `new_block()` function:
 
 <br>
 
@@ -537,9 +534,9 @@ block = blockchain.new_block(proof, blockchain.hash(last_block))
 
 <br>
 
-Remember, `new_block()` returns the newly created block so we can set the variable equal to the function call.
+Remember, `new_block()` returns the newly created block so we can set the variable `block` equal to the function call.
 
-Now when we hit the `/mine` endpoint in postman, it shows a new block being forged.
+Now when we hit the `/mine` endpoint in Postman, it shows a new block being forged.
 
 <br>
 
@@ -669,7 +666,9 @@ Because of the chain of hashes, that transaction can't be changed or removed as 
 
 #### How does it know which block to place the transaction in?
 
-The transactions are placed in a queue and added to the _next_ block that will be mined. The complexity of the proof of work problem to be solved to mine a new block is adjusted based on the number of people trying to mine, to ensure that it's difficult enough to have one block being mined roughly every ten minutes, so that transactiosn are recorded regularly.
+The transactions are placed in a queue and added to the _next_ block that will be mined. 
+
+With Bitcoin, the complexity of the proof of work problem to be solved to mine a new block is adjusted based on the number of people trying to mine, to ensure that it's difficult enough to have one block being mined roughly every ten minutes, so that transactions are recorded regularly.
 
 <br>
 
@@ -686,7 +685,7 @@ The mining is done server side currently, so whenever we mine, the server is doi
 
 We want clients to be able to mine by spending their own electricity and we'll reward them for doing that work for us by giving them a coin.
 
-In the project repo, there is a `miner.py` ile and a `blockchain.py` file. The ReadMe goes over the necessary modifications:
+In the project repo, there is a `miner.py` file and a `blockchain.py` file. The ReadMe goes over the necessary modifications:
 
 <br>
 
