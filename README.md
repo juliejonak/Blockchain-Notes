@@ -4,7 +4,7 @@
 a. [Bitcoin](#Bitcoin)  
 b. [What is a Blockchain](#What-is-a-Blockchain)  
 c. [Consensus](#Consensus)  
-d. [How does mining work?](#How-does-mining-work?)  
+d. [How does mining work?](#How-does-mining-work)  
 e. [Working with Blockchain](#Working-with-BlockChain)  
 f. [Show the Chain](#Show-the-Chain)  
 g. [Proof of Work](#Proof-of-Work)  
