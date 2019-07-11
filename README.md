@@ -719,7 +719,7 @@ flask run
 
 # Lecture II
 
-[Lecture II Recording]()
+[Lecture II Recording](https://youtu.be/XNyHVhDBK5Q)  
 
 <br>
 
