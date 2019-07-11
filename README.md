@@ -1041,12 +1041,252 @@ This will slow things down and make finding the useful debugging statements more
 <br>
 <br>
 
+## Peer to Peer Consensus
+
+Another fundamental part of blockchain is that it is decentralized - no one person or entity owns or controls it. But how is that maintained?
+
+This is possible through peer to peer consensus -- many servers are running it. People all over the world can become a peer that is a part of the network, and whoever's chain is the longest is the most up-to-date and "correct" chain. 
+
+Let's look into the `communication_gp` directory from our project repo (copied into this repo for simplicity) to see how we can modify the server to hard code the genesis block, and notify all nodes to receive this validated chain (or query for the full chain if that server is far behind on blocks).
+
+Our to do list is:
+
+<br>
+```
+*Server*
+Modify the server we created to:
+* Hard code the genesis block so that all servers using this code can share a chain
+* When a new block is mined, alert all nodes in its list of registered nodes to add the new block
+* Receive a new block from one of the nodes in its list of registered nodes, *validate it*, and add it to the chain, or, if necessary, query for the entire chain
+* Validate the new block by checking the index, previous hash, and proof
+```
+
+<br>
 
 
+Let's open our `blockchain.py`. We'll also need to be able to run servers on multiple ports to test if this is working.
+
+At the bottom of the file, this code helps with it:
+
+<br>
+```
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    else:
+        port = 5000
+    app.run(host='0.0.0.0', port=port)
+```
+
+<br>
+
+This is a non-robust (no error handling) way of runnign this file on multiple servers. Since this is development only and internal use, we don't need an elegant solution.
+
+We would need to change that if we start to add multiple command line arguments that could cause confusion.
+
+Let's test out if it works.
+
+<br>
+```
+pipenv shell
+cd communication_gp
+python3 blockchain.py 5000
+```
+
+<br>
+
+We'll repeat this also starting on 5001. We can open two tabs in Postman to check that both are up and running.
+
+## Hard code the genesis block
+
+Why is it so important to hard code this initial genesis block?
+
+If we try to initialize a genesis block on two separate servers, there will be a conflict with two separate chains that cannot be consolidated.
+
+Due to the timestamps, the hashes will be different, which results in two separate blocks that cannot become a single one.
+
+The genesis block needs to be hard coded into the program, by hard setting the index as 1 and determining that the timestamp should be 0, noting it as a special case.
+
+There are no transaction so that is an empty list. The proof will be our base case (99) and our previous hash can be None, 0 or 1.
+
+_Some blockchains start their index at 0, but it has some caveats to do so, so for simplicity, we'll start at 1._
+
+<br>
+```
+class Blockchain(object):
+    def __init__(self):
+        self.chain = []
+        self.current_transactions = []
+        self.nodes = set()
+
+        self.create_genesis_block()
+
+    def create_genesis_block(self):
+        """
+        Creates the genesis block and add it into the chain.
+
+        This is the anchor of the chain. It must be identical for all nodes, or consensus, will fail.
+
+        It is normally hard coded.
+        """        
+        block = {
+            'index': 1,
+            'timestamp': 0,
+            'transactions': [],
+            'proof': 99,
+            'previous_hash': None,
+        }
+
+        self.chain.append(block)
+```
+
+<br>
 
 
+Now when we test each server in Postman, the response matches on each:
+
+<br>
+```
+{
+    "chain": [
+        {
+            "index": 1,
+            "previous_hash": null,
+            "proof": 99,
+            "timestamp": 0,
+            "transactions": []
+        }
+    ],
+    "length": 1
+}
+```
+
+<br>
+<br>
+
+## Notify Nodes
+
+>On Bitcoin, it is up to each individual node to decide how they “trust” other nodes.  
+> Some node reject all connections, some accept all.  
+> Some are somewhere in between depending on services or version, etc.  
+> ALL nodes validate transactions and the blockchain.  
+
+Next we need to:
+
+> When a new block is mined, alert all nodes in its list of registered nodes to add the new block  
+
+> Receive a new block from one of the nodes in its list of registered nodes, *validate it*, and add it to the chain, or, if necessary, query for the entire chain  
+
+> Validate the new block by checking the index, previous hash, and proof  
 
 
+Let's start by adding a function that broadcasts when a new block has been added to the chain.
 
 
+<br>
+```
+def broadcast_new_block(self, block):
+    """
+    Alerts neighbors in list of nodes that a new Block has been mined :param block: <Block> the block that has been mined and added to the chain
+    """
+    post_data = {"block": block}
+    # We need to send this to all the nodes so we need to loop through the nodes
+    # We'll be making the /new endpoint after this 
+    for node in self.nodes:
+        response = requests.post(f'https://{node}/new', json=post_data)
+
+        if response.status_code != 200:
+            # TODO: Error handling
+```
+
+<br>
+
+We can't test if this works really so we need to write the `/new` endpoint to test them both at once.
+
+When a node receives a new block, we need to both validate that the peer sending it is an approved node _and_ validate the block. We can check the previous block's hash and indexes.
+
+<br>
+```
+@app.route('/nodes/new', methods=['POST'])
+def new_block():
+    values = request.get_json()
+
+    # Check that the required block field is in the POST data
+    required = ['block']
+    if not all(k in values for k in required):
+        return 'Missing value: block', 400
+
+    # TODO: Validate that sender is actually an approved peer node
+
+    # Validate the block
+
+    # Make sure that the index is exactly one greater than the last chain
+    new_block = values["block"]
+    last_block = blockchain.last_block
+
+    if new_block["index"] == last_block["index"] + 1:
+        # Make sure that the block's last hash matches our hash of our last block
+        if new_block['previous_hash'] == blockchain.hash(last_block):
+            # Validate the proof in the new block
+            if blockchain.valid_proof(last_block['proof'], new_block['proof']):
+                # Block is valid. Add to blockchain.
+                blockchain.chain.append(new_block)
+                return "Block Accepted", 200
+
+    # TODO: print error message
+    # TODO: request the chain from our peers and check for consensus, in case this node is behind the current longest chain and is rejecting it due to outdated data
+    return 'Block Rejected', 200
+```
+
+<br>
+
+One big difference between JavaScript and Python is that JS is asynchronous, while Python is synchronous.
+
+This means that while Server A is awaiting a request to resolve or timeout, all other requests made of it are on hold. Because of this, we need to send a response if we add the block.
+
+<br>
+
+We need to call the broadcast function when we add a new block on the blockchain, like so:
+
+<br>
+```
+self.chain.append(block)
+self.broadcast_new_block(block)
+return block
+```
+
+<br>
+
+To test if both of these work, we need to register these nodes with each other at the register endpoint.
+
+At `http://localhost:5000/nodes/register`, send a POST request with the following body:
+
+<br>
+```
+{
+	"nodes": ["http://localhost:5001"]
+}
+```
+
+<br>
+
+And vice versa on the other server. This should result in a confirmation like so:
+
+<br>
+```
+{
+    "message": "New nodes have been added",
+    "total_nodes": [
+        "localhost:5001"
+    ]
+}
+```
+
+<br>
+
+Now the nodes are connected.
+
+If we run `python3 miner.py`, our client side mining should begin. When a coin is mined, we can run a GET request on each server at `/chain` to view corresponding records.
+
+The next big step for taking this to production would be better handling transactions and increasing security.
 
