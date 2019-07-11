@@ -16,6 +16,13 @@ i. [Project Tips](#Project-Tips)
 <br>
 
 [Lecture II](#Lecture-II)  
+a. [Adjusting Server Side](#Adjusting-Server-Side)  
+b. [Add Endpoint](#Add-Endpoint)  
+c. [Adjust Mine.py](#Adjust-Mine.py)  
+d. [Client Mining](#Client-Mining)  
+e. [Peer to Peer Consensus](#Peer-to-Peer-Consensus)  
+f. [Hard Code the Genesis Block](#Hard-Code-the-Genesis-Block)  
+g. [Notify Nodes](#Notify-Nodes)  
 
 <br>
 <br>
@@ -712,6 +719,11 @@ flask run
 
 # Lecture II
 
+[Lecture II Recording]()
+
+<br>
+
+## Adjusting Server Side 
 
 _Today we'll use the files within the [project repo]() in the client mining directory. Remember to start your environment like so:_
 
@@ -719,6 +731,7 @@ _Today we'll use the files within the [project repo]() in the client mining dire
 
 ```
 pipenv shell
+cd project-directory-name
 pipenv install flash
 pipenv install requests
 ```
@@ -727,9 +740,7 @@ pipenv install requests
 
 Following the task list, we need to modify the server to get rid of the proof of work function, adjust what constitutes a valid proof, and modify the mine endpoint to validate or reject a submitted proof.
 
-Remember:
-
-To prevent having to restart your server manually with each file change, you can run this script in the terminal:
+Remember, to prevent having to restart your server manually with each file change, you can run this script in the terminal:
 
 <br>
 
@@ -769,11 +780,12 @@ In `client_mining_blockchain.py`, we have the code built yesterday that we need 
 
 First let's create the `/last_proof` endpoint because other things are dependent upon it, but it doesn't depend on anything else to work.
 
-Flask allows us to hit an endpoint and run a function. While we _could_ research more to understand how it works, we can also just copy the pattern from above to learn how to use it.
+Flask allows us to hit an endpoint to run a function. 
 
-We can mimic like 190's `@app.route()` and copy the pattern, but modify it for our new task.
+We can mimic line 190's `@app.route()` and copy the pattern, but modify it for our new task.
 
 <br>
+
 ```
 @app.route('/last_proof', methods=['GET'])
 def last_proof():
@@ -784,9 +796,10 @@ def last_proof():
 ```
 <br>
 
-Now we can test this in Postman to ensure it responds with a the last proof.
+Now we can test this in Postman to ensure it responds with the last proof.
 
 <br>
+
 ```
 {
     "last_proof": 99
@@ -795,20 +808,21 @@ Now we can test this in Postman to ensure it responds with a the last proof.
 
 <br>
 
-Next, let's comment our our proof_of_work function.
+Next, let's comment out our `proof_of_work` function.
 
-In the future, we should change the valid_proof function to get the first 6 leading zeros, instead of 4. But for now, we'll leave it alone because we know it works and this will make testing faster.
+In the future, we should change the `valid_proof` function to get the first 6 leading zeros, instead of 4. But for now, we'll leave it alone because we know it works and this will make testing faster.
 
 <br>
 <br>
 
-## Adjust Mine
+## Adjust Mine.py
 
 Next we need to change what happens at the `/mine` endpoint. It needs to become a POST, not GET endpoint.
 
 We can copy the `new_transaction` function pattern to also include error handling for if we don't receive the correct object keys needed.
 
 <br>
+
 ```
 @app.route('/mine', methods=['POST'])
 def mine():
@@ -821,13 +835,14 @@ def mine():
 
 <br>
 
-This requires the client to send in their post a key "proof" and will let them know if it's missing.
+This requires the client to send in their POST request a key "proof" and will let them know if the POST fails because it's missing.
 
 We could remove the for loop checking for multiple required keys, but if we end up requiring more keys from the client later, it's handy to have it in place.
 
 Now we need to validate the proof:
 
 <br>
+
 ```
 # We run the proof of work algorithm to get the next proof...
 last_block = blockchain.last_block
@@ -870,6 +885,7 @@ We're checking if the proof is valid -- if it's not, then we return the error th
 We can test this in Postman using:
 
 <br>
+
 ```
 {
     "proof": 99
@@ -881,6 +897,7 @@ We can test this in Postman using:
 And receive back:
 
 <br>
+
 ```
 {
     "message": "Proof is invalid or already submitted."
@@ -898,12 +915,13 @@ We should now be done with the server and write the mining program.
 
 First we want to get the `last_proof` from the server and test for a new one.
 
-Since we might not know how to use get and post requests in Python, we can [read about it](https://www.geeksforgeeks.org/get-post-requests-using-python/) to learn how to implement it with `requests` as a dependency.
+Since we might not know how to use GET and POST requests in Python, we can [read about it](https://www.geeksforgeeks.org/get-post-requests-using-python/) to learn how to implement it with `requests` as a dependency.
 
-Following that syntax, we can make a get request like so:
+Following that syntax, we can make a GET request like so:
 
 
 <br>
+
 ```
 while True:
         # TODO: Get the last proof from the server and look for a new one
@@ -912,11 +930,14 @@ while True:
 
 <br>
 
-Now when we run the file, the last_proof of 99 should be fetched and printed in the terminal.
+Now when we run the file, the `last_proof` of 99 should be fetched and printed in the terminal.
 
-We need to add in the proof_of_work and valid_proof functions to check for valid proof guesses and send them into the server. We'll need to remove references to `self` instance because we are not building this within a Class.
+We need to add in the `proof_of_work` and `valid_proof` functions to check for valid proof guesses and to send them to the server. 
+
+We'll need to remove references to the `self` instance because we are not building this within a Class.
 
 <br>
+
 ```
 def proof_of_work(last_proof):
     print("Starting search for new proof")
@@ -939,10 +960,11 @@ def valid_proof(last_proof, proof):
 
 We've added in some print statements as well to tell us when the search for a new proof has started and when it ends with a successfully passing proof.
 
-Now when we run the file, our terminal will endlessly find the same proof, because it isn't yet sending this to the server to update with a new successful block being added to the chain.
+Now when we run the file, our terminal will endlessly find the same proof, because it isn't yet sending this to the server to update with a new successful block being added to the chain (which would then update `last_proof`, allowing the algorithm to find a new proof).
 
 
 <br>
+
 ```
 Starting search for new proof
 Found new proof: 74581
@@ -955,6 +977,7 @@ Found new proof: 74581
 So let's send this to the server:
 
 <br>
+
 ```
 99
 Starting search for new proof
@@ -971,9 +994,10 @@ Found new proof: 28441
 
 <br>
 
-And so on. It will now be mining coins extremely quickly. So we need to print a success message that new blocks are being forged.
+And so on. It will now be mining coins extremely quickly. We need to print a success message that new blocks are being forged.
 
 <br>
+
 ```
 # TODO: If the server responds with 'New Block Forged'
 # add 1 to the number of coins mined and print it.  Otherwise,
@@ -985,11 +1009,12 @@ if proof_data.json()["message"] == "New Block Forged":
 
 <br>
 
-Now we're printing the number of coins being mined and endlessly mining. We still need to update our valid_proof to only work for 6 leading zeros though.
+Now we're printing the number of coins being mined and endlessly mining. We still need to update our `valid_proof` to only work for 6 leading zeros though.
 
-In both the server and client, we need to change the valid_proof to return:
+In both the server and client, we need to change the `valid_proof` function to return:
 
 <br>
+
 ```
 return guess_hash[:6] == "000000"
 ```
@@ -999,6 +1024,7 @@ return guess_hash[:6] == "000000"
 Now we notice that the search time is much, much slower due to the complexity. But with patience, we can see that it is still successfully mining.
 
 <br>
+
 ```
 99
 Starting search for new proof
@@ -1022,6 +1048,7 @@ Also, try to attempt this with an easier solution (like 2 leading 0's, then 4 le
 You could add a print statement here:
 
 <br>
+
 ```
 def proof_of_work(last_proof):
     print("Starting search for new proof")
@@ -1036,7 +1063,7 @@ def proof_of_work(last_proof):
 
 <br>
 
-This will slow things down and make finding the useful debugging statements more difficult, but it does also indicate that things are working. Your OS may have a hard time handling this must printing to the console.
+This will slow things down and make finding the useful debugging statements more difficult, but it does also indicate that things are working. Your OS may have a hard time handling this must printing to the console though and stall out.
 
 <br>
 <br>
@@ -1052,23 +1079,30 @@ Let's look into the `communication_gp` directory from our project repo (copied i
 Our to do list is:
 
 <br>
+
 ```
 *Server*
+
 Modify the server we created to:
+
 * Hard code the genesis block so that all servers using this code can share a chain
+
 * When a new block is mined, alert all nodes in its list of registered nodes to add the new block
+
 * Receive a new block from one of the nodes in its list of registered nodes, *validate it*, and add it to the chain, or, if necessary, query for the entire chain
+
 * Validate the new block by checking the index, previous hash, and proof
 ```
 
 <br>
 
 
-Let's open our `blockchain.py`. We'll also need to be able to run servers on multiple ports to test if this is working.
+Let's open our `blockchain.py` file. We'll also need to be able to run servers on multiple ports to test if this is working.
 
-At the bottom of the file, this code helps with it:
+At the bottom of the file, this code helps with that:
 
 <br>
+
 ```
 if __name__ == '__main__':
     if len(sys.argv) > 1:
@@ -1080,13 +1114,14 @@ if __name__ == '__main__':
 
 <br>
 
-This is a non-robust (no error handling) way of runnign this file on multiple servers. Since this is development only and internal use, we don't need an elegant solution.
+This is a non-robust (no error handling) way of running this file on multiple servers. Since this is development only and for internal use, we don't need an elegant solution.
 
-We would need to change that if we start to add multiple command line arguments that could cause confusion.
+We would need to change that if we start to add multiple command line arguments that could cause confusion, or if this was a project being deployed.
 
 Let's test out if it works.
 
 <br>
+
 ```
 pipenv shell
 cd communication_gp
@@ -1095,23 +1130,27 @@ python3 blockchain.py 5000
 
 <br>
 
-We'll repeat this also starting on 5001. We can open two tabs in Postman to check that both are up and running.
+We'll repeat this also starting on `5001`. We can open two tabs in Postman to check that both are up and running.
 
-## Hard code the genesis block
+<br>
+<br>
+
+## Hard Code the Genesis Block
 
 Why is it so important to hard code this initial genesis block?
 
 If we try to initialize a genesis block on two separate servers, there will be a conflict with two separate chains that cannot be consolidated.
 
-Due to the timestamps, the hashes will be different, which results in two separate blocks that cannot become a single one.
+Due to the timestamp added when a block is created, and two instances not being able to have the same identical timestamp, the hashes will be different, which results in two separate blocks that cannot merge into a single chain.
 
-The genesis block needs to be hard coded into the program, by hard setting the index as 1 and determining that the timestamp should be 0, noting it as a special case.
+The genesis block needs to be hard coded into the program, by hard setting the index as 1 and choosing a timestamp of 0, to denote that this is a special case.
 
-There are no transaction so that is an empty list. The proof will be our base case (99) and our previous hash can be None, 0 or 1.
+There are no transactions, so that key's value is an empty list. The proof will be our base case (99) and our previous hash can be None, 0 or 1.
 
 _Some blockchains start their index at 0, but it has some caveats to do so, so for simplicity, we'll start at 1._
 
 <br>
+
 ```
 class Blockchain(object):
     def __init__(self):
@@ -1143,9 +1182,10 @@ class Blockchain(object):
 <br>
 
 
-Now when we test each server in Postman, the response matches on each:
+Now when we test each server in Postman, the GET `/chain` response matches on each:
 
 <br>
+
 ```
 {
     "chain": [
@@ -1179,11 +1219,13 @@ Next we need to:
 
 > Validate the new block by checking the index, previous hash, and proof  
 
+<br>
 
 Let's start by adding a function that broadcasts when a new block has been added to the chain.
 
 
 <br>
+
 ```
 def broadcast_new_block(self, block):
     """
@@ -1193,7 +1235,7 @@ def broadcast_new_block(self, block):
     # We need to send this to all the nodes so we need to loop through the nodes
     # We'll be making the /new endpoint after this 
     for node in self.nodes:
-        response = requests.post(f'https://{node}/new', json=post_data)
+        response = requests.post(f'http://{node}/new', json=post_data)
 
         if response.status_code != 200:
             # TODO: Error handling
@@ -1201,11 +1243,14 @@ def broadcast_new_block(self, block):
 
 <br>
 
+Typically we would use `https` but since we are working with a local host server, we'll use `http` instead.
+
 We can't test if this works really so we need to write the `/new` endpoint to test them both at once.
 
 When a node receives a new block, we need to both validate that the peer sending it is an approved node _and_ validate the block. We can check the previous block's hash and indexes.
 
 <br>
+
 ```
 @app.route('/nodes/new', methods=['POST'])
 def new_block():
@@ -1249,6 +1294,7 @@ This means that while Server A is awaiting a request to resolve or timeout, all 
 We need to call the broadcast function when we add a new block on the blockchain, like so:
 
 <br>
+
 ```
 self.chain.append(block)
 self.broadcast_new_block(block)
@@ -1262,6 +1308,7 @@ To test if both of these work, we need to register these nodes with each other a
 At `http://localhost:5000/nodes/register`, send a POST request with the following body:
 
 <br>
+
 ```
 {
 	"nodes": ["http://localhost:5001"]
@@ -1273,6 +1320,7 @@ At `http://localhost:5000/nodes/register`, send a POST request with the followin
 And vice versa on the other server. This should result in a confirmation like so:
 
 <br>
+
 ```
 {
     "message": "New nodes have been added",
@@ -1286,7 +1334,7 @@ And vice versa on the other server. This should result in a confirmation like so
 
 Now the nodes are connected.
 
-If we run `python3 miner.py`, our client side mining should begin. When a coin is mined, we can run a GET request on each server at `/chain` to view corresponding records.
+If we run `python3 miner.py`, our client side mining should begin. When a coin is mined, we can run a GET request on each server at `/chain` to view (hopefully) matching records.
 
 The next big step for taking this to production would be better handling transactions and increasing security.
 

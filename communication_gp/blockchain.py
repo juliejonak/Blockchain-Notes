@@ -91,10 +91,12 @@ class Blockchain(object):
         post_data = {"block": block}
         # We need to send this to all the nodes so we need to loop through the nodes
         for node in self.nodes:
-            response = requests.post(f'https://{node}/new', json=post_data)
+            response = requests.post(f'http://{node}/new', json=post_data)
+            print(f"Success broadcasting to {node}")
 
             if response.status_code != 200:
                 # TODO: Error handling
+                print(f"Error broadcasting to {node}")
                 pass
 
     @staticmethod
