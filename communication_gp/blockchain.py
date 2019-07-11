@@ -58,9 +58,7 @@ class Blockchain(object):
         self.current_transactions = []
 
         self.chain.append(block)
-        print("Should broadcast?")
         self.broadcast_new_block(block)
-        print("Did broadcast?")
         return block
 
     def new_transaction(self, sender, recipient, amount):
@@ -86,18 +84,17 @@ class Blockchain(object):
         Alerts neighbors in list of nodes that a new Block has been mined :param block: <Block> the block that has been mined and added to the chain
         """
 
-        print("IN BROADCAST")
+        print("IN BROADCAST", block)
 
         post_data = {"block": block}
         # We need to send this to all the nodes so we need to loop through the nodes
         for node in self.nodes:
-            response = requests.post(f'http://{node}/new', json=post_data)
-            print(f"Success broadcasting to {node}")
+            response = requests.post(f'http://{node}/nodes/new', json=post_data)
+            print(f"Success broadcasting to {node}: {response}")
 
             if response.status_code != 200:
                 # TODO: Error handling
                 print(f"Error broadcasting to {node}")
-                pass
 
     @staticmethod
     def hash(block):
@@ -140,7 +137,7 @@ class Blockchain(object):
         """
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:4] == "0000"
+        return guess_hash[:5] == "00000"
 
     def valid_chain(self, chain):
         """
@@ -323,6 +320,7 @@ def register_nodes():
 
 @app.route('/nodes/new', methods=['POST'])
 def new_block():
+    print("INSIDE NODES NEW")
     values = request.get_json()
 
     # Check that the required block field is in the POST data
@@ -337,17 +335,23 @@ def new_block():
     # Make sure that the index is exactly one greater than the last chain
     new_block = values["block"]
     last_block = blockchain.last_block
+    print(new_block["index"], last_block["index"]+1)
 
     if new_block["index"] == last_block["index"] + 1:
+        print('/nodes/new -- passed index match \n')
         # Make sure that the block's last hash matches our hash of our last block
         if new_block['previous_hash'] == blockchain.hash(last_block):
+            print('/nodes/new -- passed hash match \n')
             # Validate the proof in the new block
             if blockchain.valid_proof(last_block['proof'], new_block['proof']):
+                print('/nodes/new -- passed proof check \n')
                 # Block is valid. Add to blockchain.
+                blockchain.chain.append(new_block)
                 return "Block Accepted", 200
 
     # TODO: print error message
     # TODO: request the chain from our peers and check for consensus, in case this node is behind the current longest chain and is rejecting it due to outdated data
+    print('/nodes/new -- failed \n')
     return 'Block Rejected', 200
 
 

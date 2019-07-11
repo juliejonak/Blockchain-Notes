@@ -1334,7 +1334,51 @@ And vice versa on the other server. This should result in a confirmation like so
 
 Now the nodes are connected.
 
-If we run `python3 miner.py`, our client side mining should begin. When a coin is mined, we can run a GET request on each server at `/chain` to view (hopefully) matching records.
+If we run `python3 miner.py`, our client side mining should begin. When a coin is mined, we can run a GET request on each server at `/chain` to view (hopefully) matching records, like so: 
+
+<br>
+
+```
+{
+    "chain": [
+        {
+            "index": 1,
+            "previous_hash": null,
+            "proof": 99,
+            "timestamp": 0,
+            "transactions": []
+        },
+        {
+            "index": 2,
+            "previous_hash": "8b89069344926ce9f90fc13f3518e95630459b81321f747302fd23d1b94f48ea",
+            "proof": 241341,
+            "timestamp": 1562874886.654986,
+            "transactions": [
+                {
+                    "amount": 1,
+                    "recipient": "00341426854640f596f4ba49a64f7c5a",
+                    "sender": "0"
+                }
+            ]
+        },
+        {
+            "index": 3,
+            "previous_hash": "6d6a9fe26bc09b9fd0f597121e983fa2348d7aaea5917700b14a736ca0d49827",
+            "proof": 526815,
+            "timestamp": 1562874887.786051,
+            "transactions": [
+                {
+                    "amount": 1,
+                    "recipient": "00341426854640f596f4ba49a64f7c5a",
+                    "sender": "0"
+                }
+            ]
+        }
+    ],
+    "length": 3
+```
+
+<br>
 
 The next big step for taking this to production would be better handling transactions and increasing security.
 
