@@ -713,6 +713,337 @@ flask run
 # Lecture II
 
 
+_Today we'll use the files within the [project repo]() in the client mining directory. Remember to start your environment like so:_
+
+<br>
+
+```
+pipenv shell
+pipenv install flash
+pipenv install requests
+```
+
+<br>
+
+Following the task list, we need to modify the server to get rid of the proof of work function, adjust what constitutes a valid proof, and modify the mine endpoint to validate or reject a submitted proof.
+
+Remember:
+
+To prevent having to restart your server manually with each file change, you can run this script in the terminal:
+
+<br>
+
+```
+export FLASK_DEBUG=1
+export FLASK_APP=name-of-your-python-file-here.py
+flask run
+```
+
+<br>
+
+Looking into our `client_mining_miner.py` file, what does this bit of code tell us?
+
+<br>
+
+```
+if __name__ == '__main__':
+    # What node are we interacting with?
+    if len(sys.argv) > 1:
+        node = sys.argv[1]
+    else:
+        node = "http://localhost:5000"
+```
+
+<br>
+
+If this file is run, the code will run.
+
+It asks what node we're working with and the default is 5000 where we're running our server.
+
+In `client_mining_blockchain.py`, we have the code built yesterday that we need to modify.
+
+<br>
+<br>
+
+## Add Endpoint
+
+First let's create the `/last_proof` endpoint because other things are dependent upon it, but it doesn't depend on anything else to work.
+
+Flask allows us to hit an endpoint and run a function. While we _could_ research more to understand how it works, we can also just copy the pattern from above to learn how to use it.
+
+We can mimic like 190's `@app.route()` and copy the pattern, but modify it for our new task.
+
+<br>
+```
+@app.route('/last_proof', methods=['GET'])
+def last_proof():
+    response = {
+        'last_proof': blockchain.last_block["proof"],
+    }
+    return jsonify(response), 200
+```
+<br>
+
+Now we can test this in Postman to ensure it responds with a the last proof.
+
+<br>
+```
+{
+    "last_proof": 99
+}
+```
+
+<br>
+
+Next, let's comment our our proof_of_work function.
+
+In the future, we should change the valid_proof function to get the first 6 leading zeros, instead of 4. But for now, we'll leave it alone because we know it works and this will make testing faster.
+
+<br>
+<br>
+
+## Adjust Mine
+
+Next we need to change what happens at the `/mine` endpoint. It needs to become a POST, not GET endpoint.
+
+We can copy the `new_transaction` function pattern to also include error handling for if we don't receive the correct object keys needed.
+
+<br>
+```
+@app.route('/mine', methods=['POST'])
+def mine():
+    values = request.get_json()
+
+    required = ['proof']
+    if not all(k in values for k in required):
+        return 'Missing Value: proof', 400
+```
+
+<br>
+
+This requires the client to send in their post a key "proof" and will let them know if it's missing.
+
+We could remove the for loop checking for multiple required keys, but if we end up requiring more keys from the client later, it's handy to have it in place.
+
+Now we need to validate the proof:
+
+<br>
+```
+# We run the proof of work algorithm to get the next proof...
+last_block = blockchain.last_block
+last_proof = last_block['proof']
+
+if not blockchain.valid_proof(last_proof, values["proof"]):
+    response = {
+        "message": "Proof is invalid or already submitted."
+    }
+    return jsonify(response), 200
+
+else:
+    # We must receive a reward for finding the proof.
+    # The sender is "0" to signify that this node has mine a new coin
+    blockchain.new_transaction(
+        sender="0",
+        recipient=node_identifier,
+        amount=1,
+    )
+
+    # Forge the new BLock by adding it to the chain
+    previous_hash = blockchain.hash(last_block)
+    block = blockchain.new_block(values['proof'], previous_hash)
+
+    response = {
+        'message': "New Block Forged",
+        'index': block['index'],
+        'transactions': block['transactions'],
+        'proof': block['proof'],
+        'previous_hash': block['previous_hash'],
+    }
+    return jsonify(response), 200
+```
+
+<br>
+
+
+We're checking if the proof is valid -- if it's not, then we return the error that the proof is invalid. However, we send a 200 response instead of a 400 because this is _expected_ behavior. It's doing what it should. The client is just unlikely to get the proof, and be the first.
+
+We can test this in Postman using:
+
+<br>
+```
+{
+    "proof": 99
+}
+```
+
+<br>
+
+And receive back:
+
+<br>
+```
+{
+    "message": "Proof is invalid or already submitted."
+}
+```
+
+<br>
+
+We should now be done with the server and write the mining program.
+
+<br>
+<br>
+
+## Client Mining
+
+First we want to get the `last_proof` from the server and test for a new one.
+
+Since we might not know how to use get and post requests in Python, we can [read about it](https://www.geeksforgeeks.org/get-post-requests-using-python/) to learn how to implement it with `requests` as a dependency.
+
+Following that syntax, we can make a get request like so:
+
+
+<br>
+```
+while True:
+        # TODO: Get the last proof from the server and look for a new one
+        last_proof = requests.get(f'{node}/last_proof').json()['last_proof']
+```
+
+<br>
+
+Now when we run the file, the last_proof of 99 should be fetched and printed in the terminal.
+
+We need to add in the proof_of_work and valid_proof functions to check for valid proof guesses and send them into the server. We'll need to remove references to `self` instance because we are not building this within a Class.
+
+<br>
+```
+def proof_of_work(last_proof):
+    print("Starting search for new proof")
+    proof = 0
+    while valid_proof(last_proof, proof) is False:
+        proof += 1
+
+    print(f"Found new proof: {proof}")
+    return proof
+
+
+def valid_proof(last_proof, proof):
+    guess = f'{last_proof}{proof}'.encode()
+    guess_hash = hashlib.sha256(guess).hexdigest()
+    return guess_hash[:4] == "0000"
+```
+
+<br>
+
+
+We've added in some print statements as well to tell us when the search for a new proof has started and when it ends with a successfully passing proof.
+
+Now when we run the file, our terminal will endlessly find the same proof, because it isn't yet sending this to the server to update with a new successful block being added to the chain.
+
+
+<br>
+```
+Starting search for new proof
+Found new proof: 74581
+74581
+```
+
+<br>
+
+
+So let's send this to the server:
+
+<br>
+```
+99
+Starting search for new proof
+Found new proof: 74581
+74581
+<Response [200]>
+74581
+Starting search for new proof
+Found new proof: 28441
+28441
+<Response [200]>
+28441
+```
+
+<br>
+
+And so on. It will now be mining coins extremely quickly. So we need to print a success message that new blocks are being forged.
+
+<br>
+```
+# TODO: If the server responds with 'New Block Forged'
+# add 1 to the number of coins mined and print it.  Otherwise,
+# print the message from the server.
+if proof_data.json()["message"] == "New Block Forged":
+    coins_mined += 1
+    print(f"Coins mined: {coins_mined}")
+```
+
+<br>
+
+Now we're printing the number of coins being mined and endlessly mining. We still need to update our valid_proof to only work for 6 leading zeros though.
+
+In both the server and client, we need to change the valid_proof to return:
+
+<br>
+```
+return guess_hash[:6] == "000000"
+```
+
+<br>
+
+Now we notice that the search time is much, much slower due to the complexity. But with patience, we can see that it is still successfully mining.
+
+<br>
+```
+99
+Starting search for new proof
+Found new proof: 9250889
+9250889
+<Response [200]>
+Coins mined: 1
+9250889
+Starting search for new proof
+```
+
+<br>
+
+
+Unfortunately, with more complex mining, it could be much harder to gauge if our solution was working or if we were endlessly waiting. 
+
+We can add more debugging print console statements, or add a timer to let us know that the solution is running.
+
+Also, try to attempt this with an easier solution (like 2 leading 0's, then 4 leading 0's) to ensure that the logic is sound.
+
+You could add a print statement here:
+
+<br>
+```
+def proof_of_work(last_proof):
+    print("Starting search for new proof")
+    proof = 0
+    while valid_proof(last_proof, proof) is False:
+        print(proof)
+        proof += 1
+
+    print(f"Found new proof: {proof}")
+    return proof
+```
+
+<br>
+
+This will slow things down and make finding the useful debugging statements more difficult, but it does also indicate that things are working. Your OS may have a hard time handling this must printing to the console.
+
+<br>
+<br>
+
+
+
+
 
 
 
