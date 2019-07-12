@@ -37,6 +37,8 @@ g. [Notify Nodes](#Notify-Nodes)
 
 [Blockchain Project Repo](https://github.com/LambdaSchool/Blockchain)  
 
+[Interactive Visualization of Blockchain](https://symphony.iohk.io)  
+
 <br>
 <br>
 
