@@ -27,6 +27,12 @@ g. [Notify Nodes](#Notify-Nodes)
 <br>
 <br>
 
+If you found these notes helpful and want to show appreciation to the author, [coffee donations](buymeacoff.ee/G1stPBuYU) are much loved.  
+
+<br>
+<br>
+
+
 ## Pre-Class Resources
 
 [The Trust Machine: The History of Bitcoin](https://youtu.be/ZKwqNgG-Sv4) 
